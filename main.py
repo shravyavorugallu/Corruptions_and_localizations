@@ -5,9 +5,10 @@ from src.virus import Virus
 from src.cltag import CLTag
 from src.clverify import CLVerify
 from src.files import Files
+from src.insert_localizer import InsertLocalizer  # Updated import
 
 def generate_and_mutate_string():
-    # Generate random string of length 300
+    # Generate random string of length 500
     random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=500))
     
     # Define different mutation modes
@@ -17,7 +18,7 @@ def generate_and_mutate_string():
     # Apply mutations for each mode
     mutated_strings = {}
     for mode in modes:
-        if mode == 'edit' or mode == 'insert' or mode == 'delete':
+        if mode in ['edit', 'insert', 'delete']:
             mutated = virus_alter(random_string, mode, mutation_size, start=50)
         else:
             mutated = virus_alter(random_string, mode, mutation_size)
@@ -51,10 +52,17 @@ if __name__ == "__main__":
             print(f"Error: Mutated file for {mode} not created.")
             exit(1)
     
-    # Initialize CLTag and CLVerify
+    # Define the known data to prepend and append for localization
+    prepend_data = "KNOWN_HEADER_DATA"
+    append_data = "KNOWN_FOOTER_DATA"
+    
+    # Initialize CLTag and CLVerify for hash-based verification
     cl_tag = CLTag(original_path)
     cl_tag.compute_hashes()  # Compute and store hashes
     
+    # Initialize InsertLocalizer
+    insert_localizer = InsertLocalizer(prepend_data, append_data)  # New
+
     for mode in mutations:
         mutation_path = f"tmp/mutated_{mode}.txt"
         cl_verify = CLVerify(original_path, mutation_path)
@@ -69,4 +77,9 @@ if __name__ == "__main__":
                 print(f"    Mutated hash = {mutated_hash}")
                 print(f"    Mutated content snippet: {mutated_content[:50]}...{mutated_content[-50:]}")
         else:
-            print("Mutation verified successfully, no differences detected.")    
+            print("Mutation verified successfully, no differences detected.")
+        
+        # Localize insertion using InsertLocalizer
+        print(f"Localizing insertions for the {mode} mutation:")
+        result = insert_localizer.localize_insertion(mutation_path, cl_tag.original_hash)
+        print(result)
